@@ -49,39 +49,23 @@ usage()
 }
 
 static bool
-get_data(std::string const &path, std::vector<char> &data)
+get_data(std::string const &path, nlohmann::json &j)
 {
         if (path.empty()) {
-                std::copy(std::istream_iterator<char>(std::cin), std::istream_iterator<char>(),
-                          std::back_inserter(data));
+                std::cin >> j;
                 return true;
         }
 
         if (std::filesystem::exists(path)) {
                 std::ifstream ifs(path);
                 if (ifs.good()) {
-                        std::copy(std::istream_iterator<char>(ifs), std::istream_iterator<char>(),
-                                  std::back_inserter(data));
+                        ifs >> j;
                 } else {
                         std::cerr << "Could not read from file" << std::endl;
                         return false;
                 }
         } else {
                 std::cerr << "File does not exist" << std::endl;
-                return false;
-        }
-
-        return true;
-}
-
-static bool
-parse_data(std::vector<char> const &data, int indentation)
-{
-        try {
-                nlohmann::json j = nlohmann::json::parse(data.begin(), data.end());
-                std::cout << j.dump(indentation) << std::endl;
-        } catch (nlohmann::json::exception &e) {
-                std::cerr << "Failed to parse json: " << e.what() << std::endl;
                 return false;
         }
 
@@ -119,14 +103,16 @@ main(int argc, char *argv[])
                 indentation = 2;
         }
 
-        std::vector<char> data;
-        if (!get_data(path, data)) {
+        nlohmann::json j;
+        if (!get_data(path, j)) {
                 return 1;
         }
 
-        if (!parse_data(data, (int)indentation)) {
+        try {
+                std::cout << j.dump(indentation) << std::endl;
+                return 0;
+        } catch (nlohmann::json::exception &e) {
+                std::cerr << "Failed to parse json: " << e.what() << std::endl;
                 return 1;
         }
-
-        return 0;
 }
